@@ -11,6 +11,10 @@
         <h2>{{ package['label'] or package['tracking_code'] }}</h2>
         <p class="detail-hero__status">{{ package['raw_status'] or package['status'] }}</p>
         {% if package['error'] %}<p class="error-banner">Suivi indisponible : {{ package['error'] }}</p>{% endif %}
+        <form class="rename-form" method="post" action="/packages/{{ package['id'] }}/label">
+          <input type="text" name="label" placeholder="Nom du colis" value="{{ package['label'] or '' }}">
+          <button type="submit">Renommer</button>
+        </form>
         <dl class="meta-grid">
           {% if package['label'] %}
           <div><dt>Numéro</dt><dd class="mono">{{ package['tracking_code'] }}</dd></div>
@@ -21,6 +25,7 @@
           {% if package['locomotion_mode'] %}<div><dt>Livraison</dt><dd>{{ package['locomotion_mode']|capitalize }}</dd></div>{% endif %}
         </dl>
         {% if package['url'] %}<a class="detail-hero__link" href="{{ package['url'] }}" target="_blank" rel="noopener">Voir le suivi sur laposte.fr</a>{% endif %}
+        <img class="detail-hero__barcode" src="/packages/{{ package['id'] }}/barcode.png" alt="Code-barres {{ package['tracking_code'] }}">
       </div>
     </div>
   </div>

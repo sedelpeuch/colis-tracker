@@ -272,6 +272,42 @@ main {
 .detail-hero__link { color: var(--blue); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
 .detail-hero__link:hover { text-decoration: underline; }
 
+.rename-form {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.5rem 0 1.25rem;
+}
+.rename-form input {
+  flex: 1;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+.rename-form button {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.rename-form button:hover { background: var(--blue-dark); }
+
+.detail-hero__barcode {
+  display: block;
+  margin-top: 1.25rem;
+  padding: 0.75rem;
+  background: #fff;
+  border-radius: var(--radius);
+  max-width: 100%;
+}
+
 .layout-two-col {
   display: grid;
   grid-template-columns: 1fr;

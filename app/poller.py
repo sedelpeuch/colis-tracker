@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 import httpx
 
 from . import db
+from .barcode import generate_barcode_png
 from .laposte_client import LaPosteApiError, ParcelStatus, fetch_parcel
 
 logger = logging.getLogger(__name__)
@@ -26,15 +27,23 @@ def _in_quiet_window(now: datetime) -> bool:
     return QUIET_START_HOUR <= now.hour < QUIET_END_HOUR
 
 
-async def _notify(title: str, message: str) -> None:
+async def _notify(
+    title: str, message: str, *, attachment: bytes | None = None, attachment_name: str | None = None
+) -> None:
     if not NTFY_URL or not NTFY_TOPIC:
         return
+    headers = {"Title": title}
+    content = message.encode("utf-8")
+    if attachment is not None:
+        headers["Message"] = message
+        headers["Filename"] = attachment_name or "barcode.png"
+        content = attachment
     try:
         async with httpx.AsyncClient() as client:
             await client.post(
                 f"{NTFY_URL.rstrip('/')}/{NTFY_TOPIC}",
-                content=message.encode("utf-8"),
-                headers={"Title": title},
+                content=content,
+                headers=headers,
                 timeout=10.0,
             )
     except httpx.HTTPError:
@@ -103,7 +112,22 @@ async def _poll_one(client: httpx.AsyncClient, row) -> None:
 
     if status_changed:
         label = row["label"] or row["tracking_code"]
-        await _notify(f"Colis {label}", snapshot.raw_status or snapshot.status.value)
+        message = snapshot.raw_status or snapshot.status.value
+        if snapshot.status == ParcelStatus.AT_PICKUP_POINT:
+            try:
+                png = generate_barcode_png(row["tracking_code"])
+            except Exception:
+                logger.warning("barcode generation failed", exc_info=True)
+                await _notify(f"Colis {label}", message)
+            else:
+                await _notify(
+                    f"Colis {label}",
+                    message,
+                    attachment=png,
+                    attachment_name=f"{row['tracking_code']}.png",
+                )
+        else:
+            await _notify(f"Colis {label}", message)
 
 
 async def poll_due_packages() -> None:

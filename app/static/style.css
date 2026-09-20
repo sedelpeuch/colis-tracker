@@ -274,11 +274,13 @@ main {
 
 .rename-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin: 0.5rem 0 1.25rem;
 }
 .rename-form input {
   flex: 1;
+  min-width: 0;
   padding: 0.5rem 0.7rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -288,6 +290,7 @@ main {
   font-size: 0.9rem;
 }
 .rename-form button {
+  flex-shrink: 0;
   background: var(--blue);
   color: #fff;
   border: none;

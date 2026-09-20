@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% import "partials/_icons.html" as icons %}
+{% block content %}
+<a class="back-link" href="/">&larr; Retour à la liste</a>
+
+<div class="layout-two-col">
+  <div>
+    <div class="detail-hero">
+      <div class="status-ring status-ring--lg status-ring--{{ package['status'] }}">{{ icons.status_icon(package['status']) }}</div>
+      <div class="detail-hero__body">
+        <h2>{{ package['label'] or package['tracking_code'] }}</h2>
+        <p class="detail-hero__status">{{ package['raw_status'] or package['status'] }}</p>
+        {% if package['error'] %}<p class="error-banner">Suivi indisponible : {{ package['error'] }}</p>{% endif %}
+        <dl class="meta-grid">
+          {% if package['label'] %}
+          <div><dt>Numéro</dt><dd class="mono">{{ package['tracking_code'] }}</dd></div>
+          {% endif %}
+          <div><dt>Transporteur</dt><dd>{{ package['carrier'] or 'Inconnu' }}</dd></div>
+          {% if package['sender'] %}<div><dt>Envoyé par</dt><dd>{{ package['sender'] }}</dd></div>{% endif %}
+          {% if package['entry_date'] %}<div><dt>Pris en charge le</dt><dd>{{ package['entry_date'][:10] }}</dd></div>{% endif %}
+          {% if package['locomotion_mode'] %}<div><dt>Livraison</dt><dd>{{ package['locomotion_mode']|capitalize }}</dd></div>{% endif %}
+        </dl>
+        {% if package['url'] %}<a class="detail-hero__link" href="{{ package['url'] }}" target="_blank" rel="noopener">Voir le suivi sur laposte.fr</a>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <h2 class="group-label">Historique</h2>
+    <ul class="history">
+      {% for e in events %}
+      <li><span>{{ e['raw_status'] or e['status'] }}</span><time>{{ e['created_at'] }}</time></li>
+      {% else %}
+      <li><span>Aucun changement de statut enregistré pour l'instant.</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

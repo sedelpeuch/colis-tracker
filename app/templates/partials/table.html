@@ -1,0 +1,42 @@
+{% import "partials/_icons.html" as icons %}
+
+{% macro parcel_card(p) %}
+<article class="parcel{% if p['delivered'] %} is-delivered{% endif %}">
+  <div class="parcel__top">
+    <div class="status-ring status-ring--{{ p['status'] }}">{{ icons.status_icon(p['status']) }}</div>
+    <div class="parcel__title">
+      <a href="/packages/{{ p['id'] }}">{{ p['label'] or p['tracking_code'] }}</a>
+      {% if p['label'] %}<span class="parcel__code mono">{{ p['tracking_code'] }}</span>{% endif %}
+      <div class="parcel__status-label {{ p['status'] }}">{{ postmark_labels.get(p['status'], 'Inconnu') }}</div>
+    </div>
+  </div>
+  <p class="parcel__status">{{ p['raw_status'] or 'En attente de la première mise à jour' }}</p>
+  <p class="parcel__meta">{{ p['carrier'] or 'Transporteur inconnu' }}{% if p['sender'] %} · Envoyé par {{ p['sender'] }}{% endif %}</p>
+  {% if p['error'] %}<p class="error-banner">Suivi indisponible : {{ p['error'] }}</p>{% endif %}
+  <div class="parcel__footer">
+    <form class="parcel__remove" method="post" action="/packages/{{ p['id'] }}/delete" onsubmit="return confirm('Arrêter de suivre ce colis ?')">
+      <button type="submit" aria-label="Arrêter le suivi">Retirer</button>
+    </form>
+  </div>
+</article>
+{% endmacro %}
+
+{% if not in_progress and not delivered %}
+<div class="empty-state">
+  <p>Aucun colis suivi pour l'instant.<br>Ajoute un numéro de suivi Colissimo ou Chronopost ci-dessus pour commencer.</p>
+</div>
+{% else %}
+  {% if in_progress %}
+  <h2 class="group-label">En cours ({{ in_progress|length }})</h2>
+  <div class="parcel-list">
+    {% for p in in_progress %}{{ parcel_card(p) }}{% endfor %}
+  </div>
+  {% endif %}
+
+  {% if delivered %}
+  <h2 class="group-label">Livrés ({{ delivered|length }})</h2>
+  <div class="parcel-list">
+    {% for p in delivered %}{{ parcel_card(p) }}{% endfor %}
+  </div>
+  {% endif %}
+{% endif %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<form class="add-form" method="post" action="/packages">
+  <input type="text" name="tracking_code" placeholder="Numéro de suivi (ex. 6A12345678901)" required>
+  <input type="text" name="label" placeholder="Nom du colis (optionnel)">
+  <button type="submit">Suivre</button>
+</form>
+
+<div id="packages-list" hx-get="/packages/table" hx-trigger="every 30s" hx-swap="innerHTML">
+  {% include "partials/table.html" %}
+</div>
+{% endblock %}

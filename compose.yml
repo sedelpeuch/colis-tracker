@@ -1,0 +1,17 @@
+name: colis-tracker
+
+services:
+  colis-tracker:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - NTFY_URL=${NTFY_URL:-}
+      - NTFY_TOPIC=${NTFY_TOPIC:-}
+    volumes:
+      - colis_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  colis_data:
+    driver: local

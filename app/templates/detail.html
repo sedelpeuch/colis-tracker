@@ -25,12 +25,17 @@
           {% if package['locomotion_mode'] %}<div><dt>Livraison</dt><dd>{{ package['locomotion_mode']|capitalize }}</dd></div>{% endif %}
         </dl>
         {% if package['url'] %}<a class="detail-hero__link" href="{{ package['url'] }}" target="_blank" rel="noopener">Voir le suivi sur laposte.fr</a>{% endif %}
-        <img class="detail-hero__barcode" src="/packages/{{ package['id'] }}/barcode.png" alt="Code-barres {{ package['tracking_code'] }}">
       </div>
     </div>
   </div>
 
   <div>
+    <h2 class="group-label">Code-barres</h2>
+    <div class="barcode-card">
+      <img class="barcode-card__img" src="/packages/{{ package['id'] }}/barcode.png" alt="Code-barres {{ package['tracking_code'] }}">
+      <p class="barcode-card__code">{{ package['tracking_code'] }}</p>
+    </div>
+
     <h2 class="group-label">Historique</h2>
     <ul class="history">
       {% for e in events %}

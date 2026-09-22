@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import email
 import html as html_module
 import imaplib
@@ -10,6 +11,7 @@ from datetime import UTC, datetime
 from email.message import Message
 
 from . import db
+from .notify import notify
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,7 @@ IMAP_USER = os.environ.get("IMAP_USER")
 IMAP_PASSWORD = os.environ.get("IMAP_PASSWORD")
 IMAP_FOLDER = os.environ.get("IMAP_FOLDER", "INBOX")
 MAIL_PROCESSED_LABEL = os.environ.get("MAIL_PROCESSED_LABEL", "colis-tracker/traite")
+WATCH_INTERVAL_MINUTES = int(os.environ.get("MAIL_WATCH_INTERVAL_MINUTES", "5"))
 
 TRACKING_CODE_RE = re.compile(
     r"(?:n°\s*(?:du\s*)?colis|num[ée]ro\s+de\s+suivi|n°\s*de\s+suivi)\s*[:\-]?\s*([0-9A-Z]{11,15})",
@@ -139,3 +142,19 @@ def scan_once() -> int:
     finally:
         imap.logout()
     return created_count
+
+
+async def mail_watcher_loop() -> None:
+    if not IMAP_HOST:
+        logger.info("mail watcher disabled (IMAP_HOST not set)")
+        return
+    logger.info("mail watcher started")
+    while True:
+        try:
+            created = await asyncio.to_thread(scan_once)
+            if created:
+                logger.info("mail watcher: %d nouveau(x) colis importé(s)", created)
+        except Exception as err:
+            logger.exception("mail scan cycle failed")
+            await notify("Colis Tracker — import mail", str(err))
+        await asyncio.sleep(WATCH_INTERVAL_MINUTES * 60)

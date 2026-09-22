@@ -1,3 +1,4 @@
+import asyncio
 import email
 from unittest.mock import MagicMock, patch
 
@@ -206,3 +207,17 @@ def test_scan_once_skips_message_with_unhandled_error(temp_db):
 
     assert created == 0
     imap.logout.assert_called_once()
+
+
+def test_mail_watcher_loop_returns_immediately_when_disabled(monkeypatch):
+    monkeypatch.setattr(mail_watcher, "IMAP_HOST", None)
+    called = False
+
+    def _fail_if_called():
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(mail_watcher, "scan_once", _fail_if_called)
+    asyncio.run(mail_watcher.mail_watcher_loop())
+
+    assert called is False

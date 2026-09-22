@@ -1,13 +1,26 @@
 from __future__ import annotations
 
+import email
 import html as html_module
+import imaplib
 import logging
+import os
 import re
+from datetime import UTC, datetime
 from email.message import Message
+
+from . import db
 
 logger = logging.getLogger(__name__)
 
 SENDER_WHITELIST: tuple[str, ...] = ("notif-colissimo-laposte.info", "laposte.fr")
+
+IMAP_HOST = os.environ.get("IMAP_HOST")
+IMAP_PORT = int(os.environ.get("IMAP_PORT", "993"))
+IMAP_USER = os.environ.get("IMAP_USER")
+IMAP_PASSWORD = os.environ.get("IMAP_PASSWORD")
+IMAP_FOLDER = os.environ.get("IMAP_FOLDER", "INBOX")
+MAIL_PROCESSED_LABEL = os.environ.get("MAIL_PROCESSED_LABEL", "colis-tracker/traite")
 
 TRACKING_CODE_RE = re.compile(
     r"(?:n°\s*(?:du\s*)?colis|num[ée]ro\s+de\s+suivi|n°\s*de\s+suivi)\s*[:\-]?\s*([0-9A-Z]{11,15})",
@@ -60,3 +73,69 @@ def build_from_search_criteria(domains: tuple[str, ...]) -> str:
     if len(domains) == 1:
         return f'FROM "{domains[0]}"'
     return f'OR {build_from_search_criteria(domains[:1])} {build_from_search_criteria(domains[1:])}'
+
+
+def _connect() -> imaplib.IMAP4:
+    if not IMAP_HOST or not IMAP_USER or not IMAP_PASSWORD:
+        raise RuntimeError("IMAP_HOST/IMAP_USER/IMAP_PASSWORD must be set")
+    imap = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
+    imap.login(IMAP_USER, IMAP_PASSWORD)
+    return imap
+
+
+def _ensure_processed_folder(imap: imaplib.IMAP4) -> None:
+    typ, _ = imap.select(MAIL_PROCESSED_LABEL)
+    if typ != "OK":
+        imap.create(MAIL_PROCESSED_LABEL)
+
+
+def _create_package(tracking_code: str) -> bool:
+    now = datetime.now(UTC).isoformat()
+    with db.get_conn() as conn:
+        cursor = conn.execute(
+            "INSERT OR IGNORE INTO packages (tracking_code, created_at, next_poll_at) VALUES (?, ?, ?)",
+            (tracking_code, now, now),
+        )
+        return cursor.rowcount > 0
+
+
+def _process_one(imap: imaplib.IMAP4, msg_id: str) -> bool:
+    typ, msg_data = imap.fetch(msg_id, "(RFC822)")
+    if not msg_data or not isinstance(msg_data[0], tuple):
+        return False
+    raw = msg_data[0][1]
+    if not isinstance(raw, bytes):
+        return False
+    msg = email.message_from_bytes(raw)
+
+    created = False
+    from_header = msg.get("From", "")
+    if is_whitelisted_sender(from_header):
+        body = decode_body(msg)
+        tracking_code = extract_tracking_code(body)
+        if tracking_code is not None:
+            created = _create_package(tracking_code)
+
+    imap.copy(msg_id, MAIL_PROCESSED_LABEL)
+    imap.store(msg_id, "+FLAGS", "\\Deleted")
+    return created
+
+
+def scan_once() -> int:
+    imap = _connect()
+    created_count = 0
+    try:
+        _ensure_processed_folder(imap)
+        imap.select(IMAP_FOLDER)
+        typ, data = imap.search(None, build_from_search_criteria(SENDER_WHITELIST))
+        msg_ids = [m.decode() for m in data[0].split()] if data and data[0] else []
+        for msg_id in msg_ids:
+            try:
+                if _process_one(imap, msg_id):
+                    created_count += 1
+            except Exception:
+                logger.exception("failed to process mail %r", msg_id)
+        imap.expunge()
+    finally:
+        imap.logout()
+    return created_count

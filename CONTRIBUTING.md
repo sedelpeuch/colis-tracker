@@ -12,6 +12,7 @@ uv run uvicorn app.main:app --reload
 ## Avant d'ouvrir une PR
 
 ```bash
+uv run pytest
 uv run ty check app
 docker build -t colis-tracker .   # vérifie que l'image build toujours
 ```

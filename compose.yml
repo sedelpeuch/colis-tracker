@@ -8,6 +8,13 @@ services:
     environment:
       - NTFY_URL=${NTFY_URL:-}
       - NTFY_TOPIC=${NTFY_TOPIC:-}
+      - IMAP_HOST=${IMAP_HOST:-}
+      - IMAP_PORT=${IMAP_PORT:-993}
+      - IMAP_USER=${IMAP_USER:-}
+      - IMAP_PASSWORD=${IMAP_PASSWORD:-}
+      - IMAP_FOLDER=${IMAP_FOLDER:-INBOX}
+      - MAIL_PROCESSED_LABEL=${MAIL_PROCESSED_LABEL:-colis-tracker/traite}
+      - MAIL_WATCH_INTERVAL_MINUTES=${MAIL_WATCH_INTERVAL_MINUTES:-5}
     volumes:
       - colis_data:/app/data
     restart: unless-stopped

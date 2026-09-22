@@ -13,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 from . import db
 from .barcode import generate_barcode_png
 from .laposte_client import fetch_parcel
+from .mail_watcher import mail_watcher_loop
 from .poller import poller_loop
 
 templates = Jinja2Templates(directory="app/templates")
@@ -21,11 +22,15 @@ templates = Jinja2Templates(directory="app/templates")
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init_db()
-    task = asyncio.create_task(poller_loop())
+    poller_task = asyncio.create_task(poller_loop())
+    mail_task = asyncio.create_task(mail_watcher_loop())
     yield
-    task.cancel()
+    poller_task.cancel()
+    mail_task.cancel()
     with contextlib.suppress(asyncio.CancelledError):
-        await task
+        await poller_task
+    with contextlib.suppress(asyncio.CancelledError):
+        await mail_task
 
 
 app = FastAPI(title="Colis Tracker", lifespan=lifespan)

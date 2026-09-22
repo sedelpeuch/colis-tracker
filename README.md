@@ -34,6 +34,32 @@ NTFY_URL=https://ntfy.sh
 NTFY_TOPIC=mes-colis
 ```
 
+## Import automatique via mail (optionnel)
+
+Colis Tracker peut surveiller une boîte mail en IMAP pour détecter les mails
+de confirmation Colissimo/Chronopost et ajouter les colis automatiquement,
+sans copier-coller de numéro de suivi. Désactivé par défaut.
+
+```bash
+IMAP_HOST=imap.gmail.com
+IMAP_PORT=993
+IMAP_USER=vous@gmail.com
+IMAP_PASSWORD=xxxx xxxx xxxx xxxx   # App Password, jamais le mot de passe du compte
+IMAP_FOLDER=INBOX
+MAIL_PROCESSED_LABEL=colis-tracker/traite
+MAIL_WATCH_INTERVAL_MINUTES=5
+```
+
+Sur Gmail, un [App Password](https://myaccount.google.com/apppasswords)
+dédié est requis (nécessite la validation en 2 étapes activée sur le
+compte) — jamais le mot de passe principal. Aucun accès OAuth ni API Google
+n'est utilisé, uniquement le protocole IMAP standard.
+
+Seuls les mails provenant de domaines officiels La Poste/Colissimo (ex.
+`notif-colissimo-laposte.info`, `laposte.fr`) sont analysés. Chaque mail
+traité (numéro trouvé ou non) est déplacé vers le label IMAP
+`MAIL_PROCESSED_LABEL` pour ne jamais être scanné deux fois.
+
 ## Développement local
 
 Le projet utilise [uv](https://docs.astral.sh/uv/).
@@ -41,6 +67,7 @@ Le projet utilise [uv](https://docs.astral.sh/uv/).
 ```bash
 uv sync
 uv run uvicorn app.main:app --reload
+uv run pytest         # tests
 uv run ty check app   # vérification de types
 ```
 
@@ -60,7 +87,7 @@ C'est l'endpoint public que la page de suivi laposte.fr appelle elle-même côt�
 ## Limites connues
 
 - Colissimo et Chronopost uniquement (les deux appartiennent au groupe La Poste) — pas de support Mondial Relay, DPD ou GLS
-- Pas d'import automatique des commandes Amazon : le numéro de suivi doit être ajouté manuellement
+- Import automatique disponible pour les mails Colissimo/Chronopost (voir "Import automatique via mail"), y compris pour certaines commandes Amazon expédiées par La Poste — pas de détection directe des mails Amazon eux-mêmes
 
 ## Licence
 

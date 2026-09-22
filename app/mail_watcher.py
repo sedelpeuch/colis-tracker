@@ -111,13 +111,18 @@ def _process_one(imap: imaplib.IMAP4, msg_id: str) -> bool:
         return False
     msg = email.message_from_bytes(raw)
 
-    created = False
     from_header = msg.get("From", "")
-    if is_whitelisted_sender(from_header):
-        body = decode_body(msg)
-        tracking_code = extract_tracking_code(body)
-        if tracking_code is not None:
-            created = _create_package(tracking_code)
+    if not is_whitelisted_sender(from_header):
+        # La recherche IMAP (SEARCH FROM) est un matching flou côté Gmail : elle
+        # peut remonter des mails d'autres expéditeurs (le terme apparaît dans le
+        # corps, pas l'en-tête). On revérifie l'en-tête From strictement ici, et
+        # on ne touche pas au mail si ça ne matche pas : ni déplacement, ni
+        # suppression du label d'origine.
+        return False
+
+    body = decode_body(msg)
+    tracking_code = extract_tracking_code(body)
+    created = _create_package(tracking_code) if tracking_code is not None else False
 
     imap.copy(msg_id, MAIL_PROCESSED_LABEL)
     imap.store(msg_id, "+FLAGS", "\\Deleted")

@@ -177,6 +177,29 @@ def test_scan_once_moves_mail_even_without_tracking_code(temp_db):
     imap.copy.assert_called_once_with("1", mail_watcher.MAIL_PROCESSED_LABEL)
 
 
+def test_scan_once_leaves_false_positive_sender_untouched(temp_db):
+    # Reproduit un cas réel : la recherche IMAP Gmail (SEARCH FROM) fait du
+    # matching flou et peut remonter un mail d'un expéditeur non whitelisté
+    # (ex. Leroy Merlin, Google) simplement parce que "laposte" apparaît dans
+    # le corps du mail. On ne doit ni créer de colis, ni déplacer ce mail.
+    raw = {
+        "1": _raw_email(
+            "Leroy Merlin <no-reply@leroymerlin.fr>",
+            "Votre commande a été confiée à La Poste pour livraison.",
+        )
+    }
+    imap = _fake_imap(raw)
+    with patch.object(mail_watcher, "_connect", return_value=imap):
+        created = mail_watcher.scan_once()
+
+    assert created == 0
+    with db.get_conn() as conn:
+        row = conn.execute("SELECT COUNT(*) AS n FROM packages").fetchone()
+    assert row["n"] == 0
+    imap.copy.assert_not_called()
+    imap.store.assert_not_called()
+
+
 def test_scan_once_does_not_duplicate_existing_tracking_code(temp_db):
     with db.get_conn() as conn:
         conn.execute(

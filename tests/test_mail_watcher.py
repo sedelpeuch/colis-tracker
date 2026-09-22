@@ -65,6 +65,18 @@ def test_extract_tracking_code_ignores_short_numbers():
     assert extract_tracking_code("N° du colis 123") is None
 
 
+def test_extract_tracking_code_falls_back_to_shape_without_label():
+    # Gabarit réel observé : pas de "N° du colis", le code suit directement
+    # "Votre colis" avec des espaces doubles issus du HTML.
+    body = "Bonjour,\n\nVotre colis  6Z00534769671  est disponible jusqu'au..."
+    assert extract_tracking_code(body) == "6Z00534769671"
+
+
+def test_extract_tracking_code_prefers_label_match_over_shape():
+    body = "N° du colis 6Z00547709541. Autre référence produit : 9X00000000000."
+    assert extract_tracking_code(body) == "6Z00547709541"
+
+
 def test_decode_body_prefers_plain_text():
     msg = email.message_from_string(
         "Content-Type: multipart/alternative; boundary=\"B\"\n"

@@ -25,10 +25,14 @@ IMAP_FOLDER = os.environ.get("IMAP_FOLDER", "INBOX")
 MAIL_PROCESSED_LABEL = os.environ.get("MAIL_PROCESSED_LABEL", "colis-tracker/traite")
 WATCH_INTERVAL_MINUTES = int(os.environ.get("MAIL_WATCH_INTERVAL_MINUTES", "5"))
 
-TRACKING_CODE_RE = re.compile(
+TRACKING_LABEL_RE = re.compile(
     r"(?:n°\s*(?:du\s*)?colis|num[ée]ro\s+de\s+suivi|n°\s*de\s+suivi)\s*[:\-]?\s*([0-9A-Z]{11,15})",
     re.IGNORECASE,
 )
+# Fallback quand le mail ne précède pas le code d'un libellé reconnu (ex.
+# "Votre colis  6Z00534769671  est disponible..."). Forme observée des
+# numéros Colissimo domestiques : 1 chiffre + 1 lettre + 11 chiffres.
+TRACKING_SHAPE_RE = re.compile(r"\b\d[A-Z]\d{11}\b")
 
 TAG_RE = re.compile(r"<[^>]+>")
 
@@ -38,10 +42,13 @@ def is_whitelisted_sender(from_header: str) -> bool:
 
 
 def extract_tracking_code(body: str) -> str | None:
-    match = TRACKING_CODE_RE.search(body)
-    if match is None:
-        return None
-    return match.group(1).upper()
+    match = TRACKING_LABEL_RE.search(body)
+    if match is not None:
+        return match.group(1).upper()
+    match = TRACKING_SHAPE_RE.search(body)
+    if match is not None:
+        return match.group(0).upper()
+    return None
 
 
 def _decode_part(part: Message) -> str:

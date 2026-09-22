@@ -256,3 +256,29 @@ def test_mail_watcher_loop_returns_immediately_when_disabled(monkeypatch):
     asyncio.run(mail_watcher.mail_watcher_loop())
 
     assert called is False
+
+
+def test_mail_watcher_loop_polls_immediately_after_import(monkeypatch):
+    monkeypatch.setattr(mail_watcher, "IMAP_HOST", "imap.example.com")
+    monkeypatch.setattr(mail_watcher, "scan_once", lambda: 2)
+
+    poll_called = False
+
+    async def fake_poll_due_packages():
+        nonlocal poll_called
+        poll_called = True
+
+    monkeypatch.setattr(mail_watcher, "poll_due_packages", fake_poll_due_packages)
+
+    class StopLoop(Exception):
+        pass
+
+    async def fake_sleep(_seconds):
+        raise StopLoop
+
+    monkeypatch.setattr(mail_watcher.asyncio, "sleep", fake_sleep)
+
+    with pytest.raises(StopLoop):
+        asyncio.run(mail_watcher.mail_watcher_loop())
+
+    assert poll_called is True

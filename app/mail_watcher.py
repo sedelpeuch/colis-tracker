@@ -12,6 +12,7 @@ from email.message import Message
 
 from . import db
 from .notify import notify
+from .poller import poll_due_packages
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +167,7 @@ async def mail_watcher_loop() -> None:
             created = await asyncio.to_thread(scan_once)
             if created:
                 logger.info("mail watcher: %d nouveau(x) colis importé(s)", created)
+                await poll_due_packages()
         except Exception as err:
             logger.exception("mail scan cycle failed")
             await notify("Colis Tracker — import mail", str(err))

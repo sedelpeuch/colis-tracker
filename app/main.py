@@ -54,9 +54,15 @@ def _grouped_packages():
         rows = conn.execute(
             "SELECT * FROM packages ORDER BY updated_at DESC, created_at DESC"
         ).fetchall()
-    in_progress = [r for r in rows if not r["delivered"]]
+    in_progress = [r for r in rows if not r["delivered"] and not r["error"]]
     delivered = [r for r in rows if r["delivered"]]
-    return {"in_progress": in_progress, "delivered": delivered, "postmark_labels": POSTMARK_LABELS}
+    errored = [r for r in rows if not r["delivered"] and r["error"]]
+    return {
+        "in_progress": in_progress,
+        "delivered": delivered,
+        "errored": errored,
+        "postmark_labels": POSTMARK_LABELS,
+    }
 
 
 @app.get("/", response_class=HTMLResponse)

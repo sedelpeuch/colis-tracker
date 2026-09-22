@@ -21,7 +21,7 @@
 </article>
 {% endmacro %}
 
-{% if not in_progress and not delivered %}
+{% if not in_progress and not delivered and not errored %}
 <div class="empty-state">
   <p>Aucun colis suivi pour l'instant.<br>Ajoute un numéro de suivi Colissimo ou Chronopost ci-dessus pour commencer.</p>
 </div>
@@ -37,6 +37,13 @@
   <h2 class="group-label">Livrés ({{ delivered|length }})</h2>
   <div class="parcel-list">
     {% for p in delivered %}{{ parcel_card(p) }}{% endfor %}
+  </div>
+  {% endif %}
+
+  {% if errored %}
+  <h2 class="group-label">Erreur ({{ errored|length }})</h2>
+  <div class="parcel-list">
+    {% for p in errored %}{{ parcel_card(p) }}{% endfor %}
   </div>
   {% endif %}
 {% endif %}

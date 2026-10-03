@@ -139,5 +139,7 @@ async def package_detail(request: Request, package_id: int):
             "SELECT * FROM events WHERE package_id = ? ORDER BY created_at DESC", (package_id,)
         ).fetchall()
     return templates.TemplateResponse(
-        request, "detail.html", {"package": package, "events": events}
+        request,
+        "detail.html",
+        {"package": package, "events": events, "postmark_labels": POSTMARK_LABELS},
     )

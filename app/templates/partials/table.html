@@ -1,49 +1,46 @@
-{% import "partials/_icons.html" as icons %}
+{% from "partials/_state.html" import state %}
 
-{% macro parcel_card(p) %}
-<article class="parcel{% if p['delivered'] %} is-delivered{% endif %}">
-  <div class="parcel__top">
-    <div class="status-ring status-ring--{{ p['status'] }}">{{ icons.status_icon(p['status']) }}</div>
-    <div class="parcel__title">
-      <a href="/packages/{{ p['id'] }}">{{ p['label'] or p['tracking_code'] }}</a>
-      {% if p['label'] %}<span class="parcel__code mono">{{ p['tracking_code'] }}</span>{% endif %}
-      <div class="parcel__status-label {{ p['status'] }}">{{ postmark_labels.get(p['status'], 'Inconnu') }}</div>
-    </div>
+{% macro parcel_row(p) %}
+<li class="row{% if p['delivered'] %} is-delivered{% endif %}">
+  {{ state(p['status'], postmark_labels, p['error']) }}
+  <div>
+    <a class="row__title" href="/packages/{{ p['id'] }}">{{ p['label'] or p['tracking_code'] }}</a>
+    {%- if p['label'] %}<span class="row__code">{{ p['tracking_code'] }}</span>{% endif %}
+    <p class="row__status">{{ p['raw_status'] or 'En attente de la première mise à jour' }}</p>
+    <p class="row__meta">{{ p['carrier'] or 'Transporteur inconnu' }}{% if p['sender'] %} · Envoyé par {{ p['sender'] }}{% endif %}</p>
+    {% if p['error'] %}<p class="error-banner">Suivi indisponible : {{ p['error'] }}</p>{% endif %}
   </div>
-  <p class="parcel__status">{{ p['raw_status'] or 'En attente de la première mise à jour' }}</p>
-  <p class="parcel__meta">{{ p['carrier'] or 'Transporteur inconnu' }}{% if p['sender'] %} · Envoyé par {{ p['sender'] }}{% endif %}</p>
-  {% if p['error'] %}<p class="error-banner">Suivi indisponible : {{ p['error'] }}</p>{% endif %}
-  <div class="parcel__footer">
-    <form class="parcel__remove" method="post" action="/packages/{{ p['id'] }}/delete" onsubmit="return confirm('Arrêter de suivre ce colis ?')">
-      <button type="submit" aria-label="Arrêter le suivi">Retirer</button>
-    </form>
-  </div>
-</article>
+  <form method="post" action="/packages/{{ p['id'] }}/delete" onsubmit="return confirm('Arrêter de suivre ce colis ?')">
+    <button class="button" type="submit" aria-label="Arrêter le suivi">Retirer</button>
+  </form>
+</li>
 {% endmacro %}
 
+{% macro group(code, title, items) %}
+<section class="panel">
+  <div class="panel__head">
+    <span class="tag">{{ code }}</span>
+    <h2 class="panel__title">{{ title }}</h2>
+    <span class="panel__count">{{ items|length }}</span>
+  </div>
+  <ul class="list">
+    {% for p in items %}{{ parcel_row(p) }}{% endfor %}
+  </ul>
+</section>
+{% endmacro %}
+
+<div class="panels">
 {% if not in_progress and not delivered and not errored %}
-<div class="empty-state">
-  <p>Aucun colis suivi pour l'instant.<br>Ajoute un numéro de suivi Colissimo ou Chronopost ci-dessus pour commencer.</p>
-</div>
+  <section class="panel">
+    <div class="panel__head">
+      <span class="tag">COL-01</span>
+      <h2 class="panel__title">En cours</h2>
+    </div>
+    <p class="empty-state">Aucun colis suivi pour l'instant. Ajoute un numéro de suivi Colissimo ou Chronopost ci-dessus pour commencer.</p>
+  </section>
 {% else %}
-  {% if in_progress %}
-  <h2 class="group-label">En cours ({{ in_progress|length }})</h2>
-  <div class="parcel-list">
-    {% for p in in_progress %}{{ parcel_card(p) }}{% endfor %}
-  </div>
-  {% endif %}
-
-  {% if delivered %}
-  <h2 class="group-label">Livrés ({{ delivered|length }})</h2>
-  <div class="parcel-list">
-    {% for p in delivered %}{{ parcel_card(p) }}{% endfor %}
-  </div>
-  {% endif %}
-
-  {% if errored %}
-  <h2 class="group-label">Erreur ({{ errored|length }})</h2>
-  <div class="parcel-list">
-    {% for p in errored %}{{ parcel_card(p) }}{% endfor %}
-  </div>
-  {% endif %}
+  {% if in_progress %}{{ group('COL-01', 'En cours', in_progress) }}{% endif %}
+  {% if delivered %}{{ group('COL-02', 'Livrés', delivered) }}{% endif %}
+  {% if errored %}{{ group('COL-03', 'Erreur', errored) }}{% endif %}
 {% endif %}
+</div>

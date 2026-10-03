@@ -1,49 +1,65 @@
 {% extends "base.html" %}
-{% import "partials/_icons.html" as icons %}
+{% from "partials/_state.html" import state %}
 {% block content %}
-<a class="back-link" href="/">&larr; Retour à la liste</a>
+<nav class="detail-nav"><a class="button" href="/">Retour à la liste</a></nav>
 
 <div class="layout-two-col">
   <div>
-    <div class="detail-hero">
-      <div class="status-ring status-ring--lg status-ring--{{ package['status'] }}">{{ icons.status_icon(package['status']) }}</div>
-      <div class="detail-hero__body">
-        <h2>{{ package['label'] or package['tracking_code'] }}</h2>
-        <p class="detail-hero__status">{{ package['raw_status'] or package['status'] }}</p>
+    <section class="panel">
+      <div class="panel__head">
+        <span class="tag">COL-04</span>
+        <h2 class="panel__title">Colis</h2>
+      </div>
+      <div class="panel__body">
+        <p class="detail-title">{{ package['label'] or package['tracking_code'] }}</p>
+        <p class="detail-status">{{ state(package['status'], postmark_labels, package['error']) }}<span>{{ package['raw_status'] or package['status'] }}</span></p>
         {% if package['error'] %}<p class="error-banner">Suivi indisponible : {{ package['error'] }}</p>{% endif %}
-        <form class="rename-form" method="post" action="/packages/{{ package['id'] }}/label">
-          <input type="text" name="label" placeholder="Nom du colis" value="{{ package['label'] or '' }}">
-          <button type="submit">Renommer</button>
+        <form class="field rename-form" method="post" action="/packages/{{ package['id'] }}/label">
+          <input type="text" name="label" placeholder="Nom du colis" aria-label="Nom du colis" value="{{ package['label'] or '' }}">
+          <button class="button" type="submit">Renommer</button>
         </form>
         <dl class="meta-grid">
           {% if package['label'] %}
-          <div><dt>Numéro</dt><dd class="mono">{{ package['tracking_code'] }}</dd></div>
+          <div><dt class="overline">Numéro</dt><dd class="mono">{{ package['tracking_code'] }}</dd></div>
           {% endif %}
-          <div><dt>Transporteur</dt><dd>{{ package['carrier'] or 'Inconnu' }}</dd></div>
-          {% if package['sender'] %}<div><dt>Envoyé par</dt><dd>{{ package['sender'] }}</dd></div>{% endif %}
-          {% if package['entry_date'] %}<div><dt>Pris en charge le</dt><dd>{{ package['entry_date'][:10] }}</dd></div>{% endif %}
-          {% if package['locomotion_mode'] %}<div><dt>Livraison</dt><dd>{{ package['locomotion_mode']|capitalize }}</dd></div>{% endif %}
+          <div><dt class="overline">Transporteur</dt><dd>{{ package['carrier'] or 'Inconnu' }}</dd></div>
+          {% if package['sender'] %}<div><dt class="overline">Envoyé par</dt><dd>{{ package['sender'] }}</dd></div>{% endif %}
+          {% if package['entry_date'] %}<div><dt class="overline">Pris en charge le</dt><dd class="mono">{{ package['entry_date'][:10] }}</dd></div>{% endif %}
+          {% if package['locomotion_mode'] %}<div><dt class="overline">Livraison</dt><dd>{{ package['locomotion_mode']|capitalize }}</dd></div>{% endif %}
         </dl>
-        {% if package['url'] %}<a class="detail-hero__link" href="{{ package['url'] }}" target="_blank" rel="noopener">Voir le suivi sur laposte.fr</a>{% endif %}
+        {% if package['url'] %}<a class="button" href="{{ package['url'] }}" target="_blank" rel="noopener">Voir le suivi sur laposte.fr</a>{% endif %}
       </div>
-    </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel__head">
+        <span class="tag">COL-05</span>
+        <h2 class="panel__title">Code-barres</h2>
+      </div>
+      <div class="panel__body">
+        <div class="barcode">
+          <img class="barcode__img" src="/packages/{{ package['id'] }}/barcode.png" alt="Code-barres {{ package['tracking_code'] }}">
+          <p class="barcode__code">{{ package['tracking_code'] }}</p>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div>
-    <h2 class="group-label">Code-barres</h2>
-    <div class="barcode-card">
-      <img class="barcode-card__img" src="/packages/{{ package['id'] }}/barcode.png" alt="Code-barres {{ package['tracking_code'] }}">
-      <p class="barcode-card__code">{{ package['tracking_code'] }}</p>
-    </div>
-
-    <h2 class="group-label">Historique</h2>
-    <ul class="history">
-      {% for e in events %}
-      <li><span>{{ e['raw_status'] or e['status'] }}</span><time>{{ e['created_at'] }}</time></li>
-      {% else %}
-      <li><span>Aucun changement de statut enregistré pour l'instant.</span></li>
-      {% endfor %}
-    </ul>
+    <section class="panel">
+      <div class="panel__head">
+        <span class="tag">COL-06</span>
+        <h2 class="panel__title">Historique</h2>
+        <span class="panel__count">{{ events|length }}</span>
+      </div>
+      <ul class="list">
+        {% for e in events %}
+        <li class="history-row"><span>{{ e['raw_status'] or e['status'] }}</span><time>{{ e['created_at'] }}</time></li>
+        {% else %}
+        <li class="history-row"><span>Aucun changement de statut enregistré pour l'instant</span></li>
+        {% endfor %}
+      </ul>
+    </section>
   </div>
 </div>
 {% endblock %}

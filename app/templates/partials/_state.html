@@ -1,0 +1,12 @@
+{# Voyant d'état d'un colis : ok en route, warn quand une action est attendue (livraison du jour, retrait), alarm en cas de souci, off une fois livré ou inconnu. Un suivi en erreur passe en alarm. #}
+{% set LIGHTS = {
+  'registered': 'ok',
+  'in_transit': 'ok',
+  'out_for_delivery': 'warn',
+  'at_pickup_point': 'warn',
+  'problem': 'alarm',
+  'returning': 'alarm',
+} %}
+{% macro state(status, labels, error=None) %}
+<span class="state overline"><span class="voyant voyant--{{ 'alarm' if error else LIGHTS.get(status, 'off') }}"></span>{{ labels.get(status, 'Inconnu') }}</span>
+{% endmacro %}

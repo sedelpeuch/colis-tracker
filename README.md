@@ -1,3 +1,5 @@
+<img src="app/static/logo.svg" alt="" width="96">
+
 # Colis Tracker
 
 Suivi de colis Colissimo/Chronopost self-hosted, sans clé API ni compte tiers.
@@ -16,7 +18,7 @@ Amazon et La Poste n'exposent aucune API grand public pour suivre ses colis sans
 - Polling automatique et adaptatif (plus fréquent quand un colis est en livraison le jour même, coupure nocturne)
 - Historique complet du colis, pas seulement les changements détectés (La Poste renvoie toute la timeline à chaque appel)
 - Notification [ntfy](https://ntfy.sh/) optionnelle à chaque changement de statut
-- Thème clair/sombre
+- Interface sombre aux couleurs de la charte graphique HomeLab
 - Aucune base de données externe : SQLite en fichier
 
 ## Démarrage rapide

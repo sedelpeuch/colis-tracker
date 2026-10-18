@@ -62,6 +62,20 @@ Seuls les mails provenant de domaines officiels La Poste/Colissimo (ex.
 traité (numéro trouvé ou non) est déplacé vers le label IMAP
 `MAIL_PROCESSED_LABEL` pour ne jamais être scanné deux fois.
 
+## Serveur MCP (optionnel)
+
+Avec `MCP_TOKEN` défini, l'appli expose un serveur MCP en streamable HTTP sur
+`/mcp`. Chaque requête doit porter `Authorization: Bearer <MCP_TOKEN>`. Sans
+la variable, la route n'existe pas.
+
+```bash
+MCP_TOKEN=$(openssl rand -hex 32)
+```
+
+Outils : `list_packages` (filtre en cours, livrés, en erreur), `get_package`
+(id ou numéro de suivi, avec l'historique), `get_barcode` (PNG),
+`add_package`, `rename_package`, `delete_package`.
+
 ## Développement local
 
 Le projet utilise [uv](https://docs.astral.sh/uv/).

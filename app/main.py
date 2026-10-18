@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from datetime import UTC, datetime
 
-import httpx
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -12,8 +10,9 @@ from fastapi.templating import Jinja2Templates
 
 from . import db
 from .barcode import generate_barcode_png
-from .laposte_client import fetch_parcel
 from .mail_watcher import mail_watcher_loop
+from .mcp_server import MCP_TOKEN, mount_mcp
+from .packages import POSTMARK_LABELS, register_package
 from .poller import poller_loop
 
 templates = Jinja2Templates(directory="app/templates")
@@ -24,7 +23,8 @@ async def lifespan(app: FastAPI):
     db.init_db()
     poller_task = asyncio.create_task(poller_loop())
     mail_task = asyncio.create_task(mail_watcher_loop())
-    yield
+    async with mcp_running() if mcp_running else contextlib.nullcontext():
+        yield
     poller_task.cancel()
     mail_task.cancel()
     with contextlib.suppress(asyncio.CancelledError):
@@ -35,18 +35,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Colis Tracker", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-
-POSTMARK_LABELS = {
-    "registered": "Enregistré",
-    "in_transit": "En transit",
-    "out_for_delivery": "En livraison",
-    "at_pickup_point": "En point relais",
-    "delivered": "Livré",
-    "returning": "Retour",
-    "problem": "Anomalie",
-    "unknown": "Inconnu",
-}
+mcp_running = mount_mcp(app, MCP_TOKEN) if MCP_TOKEN else None
 
 
 def _grouped_packages():
@@ -80,23 +69,7 @@ async def add_package(tracking_code: str = Form(...), label: str = Form("")):
     tracking_code = tracking_code.strip().upper()
     if not tracking_code:
         raise HTTPException(status_code=400, detail="tracking_code requis")
-
-    now = datetime.now(UTC).isoformat()
-    with db.get_conn() as conn:
-        conn.execute(
-            "INSERT OR IGNORE INTO packages (tracking_code, label, created_at, next_poll_at) VALUES (?, ?, ?, ?)",
-            (tracking_code, label.strip() or None, now, now),
-        )
-
-    # Poll immédiat pour un premier retour sans attendre le prochain tick.
-    async with httpx.AsyncClient() as client:
-        try:
-            await fetch_parcel(client, tracking_code)
-        except Exception:
-            pass
-    from .poller import poll_due_packages
-
-    await poll_due_packages()
+    await register_package(tracking_code, label)
 
     return RedirectResponse(url="/", status_code=303)
 

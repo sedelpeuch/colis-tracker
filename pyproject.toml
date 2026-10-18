@@ -9,6 +9,7 @@ dependencies = [
     "jinja2>=3.1",
     "python-multipart>=0.0.9",
     "python-barcode[images]>=0.15",
+    "mcp>=2.3.0",
 ]
 
 [dependency-groups]

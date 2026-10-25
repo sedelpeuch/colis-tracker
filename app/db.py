@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS packages (
     delivered_at TEXT,
     entry_date TEXT,
     locomotion_mode TEXT,
+    estimated_delivery TEXT,
     url TEXT,
     error TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -40,6 +41,21 @@ def init_db() -> None:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with get_conn() as conn:
         conn.executescript(SCHEMA)
+        # Colonnes ajoutées après coup : CREATE TABLE IF NOT EXISTS ne les crée pas sur une base existante.
+        columns = {r["name"] for r in conn.execute("PRAGMA table_info(packages)")}
+        if "estimated_delivery" not in columns:
+            conn.execute("ALTER TABLE packages ADD COLUMN estimated_delivery TEXT")
+        # delivered_at est resté vide tant que deliveryDate (chaîne ISO) était lu comme un epoch :
+        # on le reconstitue depuis le dernier événement « livré » de l'historique.
+        conn.execute(
+            """
+            UPDATE packages SET delivered_at = (
+                SELECT MAX(created_at) FROM events
+                WHERE events.package_id = packages.id AND events.status = 'delivered'
+            )
+            WHERE delivered = 1 AND delivered_at IS NULL
+            """
+        )
 
 
 @contextmanager

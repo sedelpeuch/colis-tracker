@@ -8,6 +8,7 @@ import httpx
 
 from . import db
 from .barcode import generate_barcode_png
+from .dates import eta_label
 from .laposte_client import LaPosteApiError, ParcelStatus, fetch_parcel
 from .notify import notify
 
@@ -45,6 +46,7 @@ async def _poll_one(client: httpx.AsyncClient, row) -> None:
         return
 
     status_changed = snapshot.status.value != row["status"]
+    eta_changed = bool(snapshot.estimated_delivery) and snapshot.estimated_delivery != row["estimated_delivery"]
     interval = HOT_INTERVAL if snapshot.status == ParcelStatus.OUT_FOR_DELIVERY else MID_INTERVAL
     if snapshot.delivered:
         interval = timedelta(days=3650)  # colis livré : on arrête de le poller activement
@@ -55,14 +57,15 @@ async def _poll_one(client: httpx.AsyncClient, row) -> None:
             UPDATE packages
             SET carrier = ?, status = ?, raw_status = ?, sender = COALESCE(?, sender),
                 delivered = ?, delivered_at = ?, entry_date = COALESCE(?, entry_date),
-                locomotion_mode = COALESCE(?, locomotion_mode), url = ?, error = NULL,
+                locomotion_mode = COALESCE(?, locomotion_mode), estimated_delivery = ?,
+                url = ?, error = NULL,
                 updated_at = ?, last_polled_at = ?, next_poll_at = ?
             WHERE id = ?
             """,
             (
                 snapshot.carrier, snapshot.status.value, snapshot.raw_status, snapshot.sender,
                 int(snapshot.delivered), snapshot.delivered_at, snapshot.entry_date,
-                snapshot.locomotion_mode, snapshot.url,
+                snapshot.locomotion_mode, snapshot.estimated_delivery, snapshot.url,
                 now.isoformat(), now.isoformat(), (now + interval).isoformat(),
                 row["id"],
             ),
@@ -84,9 +87,15 @@ async def _poll_one(client: httpx.AsyncClient, row) -> None:
                 (row["id"], entry.status.value, entry.raw_status, entry.timestamp),
             )
 
+    label = row["label"] or row["tracking_code"]
+    eta = f"Livraison prévue : {eta_label(snapshot.estimated_delivery)}" if snapshot.estimated_delivery else None
+    if not status_changed and eta_changed:
+        # La Poste annonce ou décale la date sans changer d'étape : ça mérite quand même une notif.
+        await notify(f"Colis {label}", eta)
     if status_changed:
-        label = row["label"] or row["tracking_code"]
         message = snapshot.raw_status or snapshot.status.value
+        if eta:
+            message = f"{message}\n{eta}"
         if snapshot.status == ParcelStatus.AT_PICKUP_POINT:
             try:
                 png = generate_barcode_png(row["tracking_code"])

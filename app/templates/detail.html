@@ -13,6 +13,8 @@
       <div class="panel__body">
         <p class="detail-title">{{ package['label'] or package['tracking_code'] }}</p>
         <p class="detail-status">{{ state(package['status'], postmark_labels, package['error']) }}<span>{{ package['raw_status'] or package['status'] }}</span></p>
+        {% set eta = None if package['delivered'] else package['estimated_delivery']|eta_readout %}
+        {% if eta %}<p class="countdown countdown--large{% if eta.tone %} countdown--{{ eta.tone }}{% endif %}"><span class="countdown__value">{{ eta.countdown }}</span><span class="countdown__date">Livraison prévue {{ eta.date }}</span></p>{% endif %}
         {% if package['error'] %}<p class="error-banner">Suivi indisponible : {{ package['error'] }}</p>{% endif %}
         <form class="field rename-form" method="post" action="/packages/{{ package['id'] }}/label">
           <input type="text" name="label" placeholder="Nom du colis" aria-label="Nom du colis" value="{{ package['label'] or '' }}">
@@ -24,6 +26,7 @@
           {% endif %}
           <div><dt class="overline">Transporteur</dt><dd>{{ package['carrier'] or 'Inconnu' }}</dd></div>
           {% if package['sender'] %}<div><dt class="overline">Envoyé par</dt><dd>{{ package['sender'] }}</dd></div>{% endif %}
+          {% if package['delivered_at'] %}<div><dt class="overline">Livré le</dt><dd>{{ package['delivered_at']|french_date|capitalize }}</dd></div>{% endif %}
           {% if package['entry_date'] %}<div><dt class="overline">Pris en charge le</dt><dd class="mono">{{ package['entry_date'][:10] }}</dd></div>{% endif %}
           {% if package['locomotion_mode'] %}<div><dt class="overline">Livraison</dt><dd>{{ package['locomotion_mode']|capitalize }}</dd></div>{% endif %}
         </dl>

@@ -10,12 +10,15 @@ from fastapi.templating import Jinja2Templates
 
 from . import db
 from .barcode import generate_barcode_png
+from .dates import eta_readout, french_date
 from .mail_watcher import mail_watcher_loop
 from .mcp_server import MCP_TOKEN, mount_mcp
 from .packages import POSTMARK_LABELS, register_package
 from .poller import poller_loop
 
 templates = Jinja2Templates(directory="app/templates")
+templates.env.filters["french_date"] = french_date
+templates.env.filters["eta_readout"] = eta_readout
 
 
 @contextlib.asynccontextmanager

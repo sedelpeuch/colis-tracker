@@ -105,6 +105,7 @@ class ParcelSnapshot:
     history: list[HistoryEntry]
     entry_date: str | None = None
     locomotion_mode: str | None = None
+    estimated_delivery: str | None = None  # ISO 8601, date prévue tant que non livré
 
 
 class LaPosteApiError(Exception):
@@ -183,15 +184,23 @@ async def fetch_parcel(client: httpx.AsyncClient, tracking_code: str) -> ParcelS
         raw_status=current_state.get("shortLabel") or newest.get("label") or status_code,
         sender=context.get("merchantName"),
         delivered=delivered,
-        delivered_at=_epoch_ms_to_iso(shipment.get("deliveryDate")) if delivered else None,
+        delivered_at=_to_iso(shipment.get("deliveryDate")) if delivered else None,
         url=TRACKING_URL.format(tracking_code=resolved_code),
         history=history,
         entry_date=shipment.get("entryDate"),
         locomotion_mode=context.get("locomotionMode"),
+        # Une fois livré, estimDate recopie juste la date de livraison.
+        estimated_delivery=None if delivered else shipment.get("estimDate"),
     )
 
 
-def _epoch_ms_to_iso(value: Any) -> str | None:
+def _to_iso(value: Any) -> str | None:
+    """Date La Poste en ISO 8601 : chaîne ISO (cas observé en réel) ou epoch en ms."""
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value).isoformat()
+        except ValueError:
+            return None
     if not isinstance(value, (int, float)):
         return None
     try:

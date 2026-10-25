@@ -244,7 +244,7 @@ a { color: var(--accent); }
 .list { list-style: none; margin: 0; padding: 0; }
 .row {
   display: grid;
-  grid-template-columns: 10rem minmax(0, 1fr) auto;
+  grid-template-columns: 10rem minmax(0, 1fr) 9rem auto;
   align-items: center;
   gap: var(--space-md);
   padding: var(--space-sm) var(--inset);
@@ -269,6 +269,41 @@ a { color: var(--accent); }
 .row__meta { margin: 0.1rem 0 0; font-size: 0.72rem; color: var(--text-muted); }
 .row.is-delivered .row__title,
 .row.is-delivered .row__status { color: var(--text-muted); }
+
+/* Compte à rebours de livraison : la lecture qu'on vient chercher, alignée en colonne
+   comme les compteurs d'un pupitre. La couleur suit la sémantique des voyants. */
+.countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin: 0;
+  text-align: right;
+}
+.countdown__value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.35rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.countdown__date { margin-top: 0.2rem; font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+.countdown--warn .countdown__value { color: var(--status-warn); }
+.countdown--alarm .countdown__value { color: var(--status-alarm); }
+.countdown--large { align-items: flex-start; margin: 0 0 var(--space-md); text-align: left; }
+.countdown--large .countdown__value { font-size: 2.6rem; }
+.countdown--large .countdown__date { font-size: 0.86rem; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 .error-banner { margin: 0.2rem 0 0; font-size: 0.72rem; color: var(--status-alarm); }
 
@@ -349,6 +384,9 @@ a { color: var(--accent); }
   .topbar__name { font-size: 1.6rem; }
   .topbar__logo { width: 32px; height: 32px; }
   .row { grid-template-columns: minmax(0, 1fr) auto; }
-  .row .state { grid-column: 1 / -1; }
+  /* Voyant et compte à rebours sur la même ligne de base ; la colonne de droite s'aligne au bord. */
+  .row .state { grid-column: 1; grid-row: 1; align-self: baseline; }
+  .row .countdown { grid-column: 2; grid-row: 1; align-self: baseline; }
+  .row form { justify-self: end; }
   .history-row { flex-direction: column; gap: 0.1rem; }
 }

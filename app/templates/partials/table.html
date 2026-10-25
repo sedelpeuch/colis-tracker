@@ -1,15 +1,19 @@
 {% from "partials/_state.html" import state %}
 
 {% macro parcel_row(p) %}
+{% set eta = None if p['delivered'] else p['estimated_delivery']|eta_readout %}
 <li class="row{% if p['delivered'] %} is-delivered{% endif %}">
   {{ state(p['status'], postmark_labels, p['error']) }}
   <div>
     <a class="row__title" href="/packages/{{ p['id'] }}">{{ p['label'] or p['tracking_code'] }}</a>
     {%- if p['label'] %}<span class="row__code">{{ p['tracking_code'] }}</span>{% endif %}
     <p class="row__status">{{ p['raw_status'] or 'En attente de la première mise à jour' }}</p>
-    <p class="row__meta">{{ p['carrier'] or 'Transporteur inconnu' }}{% if p['sender'] %} · Envoyé par {{ p['sender'] }}{% endif %}</p>
+    <p class="row__meta">{{ p['carrier'] or 'Transporteur inconnu' }}{% if p['sender'] %} · Envoyé par {{ p['sender'] }}{% endif %}{% if p['delivered_at'] %} · Livré {{ p['delivered_at']|french_date }}{% endif %}</p>
     {% if p['error'] %}<p class="error-banner">Suivi indisponible : {{ p['error'] }}</p>{% endif %}
   </div>
+  <p class="countdown{% if eta and eta.tone %} countdown--{{ eta.tone }}{% endif %}">
+    {%- if eta %}<span class="sr-only">Livraison prévue : </span><span class="countdown__value">{{ eta.countdown }}</span><span class="countdown__date">{{ eta.date }}</span>{% endif -%}
+  </p>
   <form method="post" action="/packages/{{ p['id'] }}/delete" onsubmit="return confirm('Arrêter de suivre ce colis ?')">
     <button class="button" type="submit" aria-label="Arrêter le suivi">Retirer</button>
   </form>

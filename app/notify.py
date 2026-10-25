@@ -16,10 +16,13 @@ async def notify(
 ) -> None:
     if not NTFY_URL or not NTFY_TOPIC:
         return
-    headers = {"Title": title}
+    # Titre et message en paramètres d'URL plutôt qu'en en-têtes : httpx refuse les
+    # en-têtes non ASCII, or les libellés La Poste et les noms de colis ont des accents.
+    params = {"title": title}
+    headers = {}
     content = message.encode("utf-8")
     if attachment is not None:
-        headers["Message"] = message
+        params["message"] = message
         headers["Filename"] = attachment_name or "barcode.png"
         content = attachment
     try:
@@ -27,6 +30,7 @@ async def notify(
             await client.post(
                 f"{NTFY_URL.rstrip('/')}/{NTFY_TOPIC}",
                 content=content,
+                params=params,
                 headers=headers,
                 timeout=10.0,
             )

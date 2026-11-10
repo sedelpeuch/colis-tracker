@@ -26,7 +26,7 @@ Si un colis reste bloqué sur un statut `unknown` ou une erreur, ouvrez une issu
   curl -H "User-Agent: PostmanRuntime/7.49.1" "https://www.laposte.fr/ssu/sun/back/suivi-unifie/VOTRE_CODE?lang=fr"
   ```
 
-Les mappings de statuts (`_COLISSIMO_MAP`/`_CHRONOPOST_MAP` dans `app/laposte_client.py`) sont construits empiriquement — un nouveau code de statut non reconnu est normal et bienvenu en issue.
+Les mappings de statuts (`_COLISSIMO_MAP`/`_CHRONOPOST_MAP` dans `app/laposte_client.py`) sont construits empiriquement : un nouveau code de statut non reconnu est normal et bienvenu en issue.
 
 ## Style
 
